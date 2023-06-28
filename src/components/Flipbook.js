@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Subscribe } from "unstated";
 import FlipBookContainer from "../Stores/Flipbook";
 import {
@@ -21,11 +21,11 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
     auto: false,
   };
 
-  const { pageWidth, pageHeight, pages, leftPage, rightPage } =
+  const { pageWidth, pageHeight, leftPage, rightPage } =
     FlipBookContainer.state;
 
-  const [nPages, setNPages] = useState(pages.length);
-  const [displayedPages, setDisplayedPages] = useState(2);
+  const [nPages, setNPages] = useState(136);
+  const [displayedPages, setDisplayedPages] = useState(1);
   const [nImageLoad, setNImageLoad] = useState(0);
   const [nImageLoadTrigger, setNImageLoadTrigger] = useState(0);
   const [imageLoadCallback, setImageLoadCallback] = useState(null);
@@ -39,14 +39,9 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
   const [flip, setFlip] = useState(flipInit);
   const [xMargin, setXMargin] = useState(0); // this.pageWidth * 2 - this.pageWidth * this.displayedPages) / 2
   const [action, setAction] = useState(false);
+  const [prevDirection, setPrevDirection] = useState("right");
   // computed
-  const canFlipLeft = _canFlipLeft(
-    flip,
-    currentPage,
-    displayedPages,
-    leftPage,
-    pages
-  );
+  const canFlipLeft = _canFlipLeft(flip, currentPage, displayedPages, leftPage);
   const canFlipRight = _canFlipRight(flip, currentPage, nPages, displayedPages);
   const polygonArray = _polygonArray(
     flip,
@@ -110,9 +105,12 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
   };
 
   const pageUrl = (page) => {
-    if (!pages[page]) return null;
-    // if (!pages[page].url) return default
-    return pages[page].url || null;
+    if (page === 0) return null;
+    return (
+      "images/OnePiece/Sách vui dao-hai-tac-phan-1-" +
+      ("000" + page).substr(-3) +
+      ".png"
+    );
   };
 
   const flipStart = async (direction, auto) => {
@@ -128,11 +126,16 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
         });
       } else {
         setFlip((prev) => {
+          let frontImage = pageUrl(leftPage);
+          let backImage = pageUrl(currentPage - displayedPages + 1);
+          if (prevDirection === "right") {
+            frontImage = prev.backImage;
+          }
           return {
             ...prev,
             direction: direction,
-            frontImage: pageUrl(leftPage),
-            backImage: pageUrl(currentPage - displayedPages + 1),
+            frontImage: frontImage,
+            backImage: backImage,
           };
         });
       }
@@ -148,11 +151,16 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
         });
       } else {
         setFlip((prev) => {
+          let frontImage = pageUrl(rightPage);
+          let backImage = pageUrl(currentPage + displayedPages);
+          if (prevDirection === "left") {
+            frontImage = prev.backImage;
+          }
           return {
             ...prev,
             direction: direction,
-            frontImage: pageUrl(rightPage),
-            backImage: pageUrl(currentPage + displayedPages),
+            frontImage: frontImage,
+            backImage: backImage,
           };
         });
       }
@@ -211,6 +219,7 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
         if (ratio < 1) {
           return animate();
         } else {
+          setPrevDirection(flip.direction);
           if (flip.direction === "left") {
             setCurrentPage(currentPage - displayedPages);
           } else {
@@ -221,11 +230,12 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
               return {
                 ...prev,
                 direction: null,
+                auto: false,
+                progress: 0,
               };
             });
           } else {
             onImageLoad(1, () => {
-              console.log("callback here");
               setFlip((prev) => {
                 return {
                   ...prev,
@@ -395,9 +405,6 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
 
   const preloadImages = () => {
     var i, img, j, ref, ref1, results, url;
-    if (Object.keys(preloadedImages).length >= 10) {
-      this.preloadedImages = {};
-    }
     results = [];
     for (
       i = j = ref = currentPage - 3, ref1 = currentPage + 3;
@@ -424,18 +431,25 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
     function keyDown(ev) {
       if (ev.keyCode === 37 && canFlipRight) {
         flipStart("right", false);
-        flipAuto(false);
+        setAction(true);
       }
-      if (ev.keyCode === 96 && canFlipLeft) {
+      if (ev.keyCode === 39 && canFlipLeft) {
         flipStart("left", false);
-        flipAuto(false);
+        setAction(true);
       }
     }
     window.addEventListener("keydown", keyDown);
     return () => {
       window.removeEventListener("keydown", keyDown);
     };
-  }, []);
+  });
+
+  useEffect(() => {
+    if (!action) return;
+    flipAuto(false);
+    setAction(false);
+  }, [action]);
+
   return (
     <Subscribe to={[FlipBookContainer]}>
       {(flipBookContainer) => {
@@ -454,6 +468,7 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
           >
             <div className="viewport">
               <div className="container" style={{ width: "100%" }}>
+                <div className="guard" />
                 <div
                   className="centering-box"
                   style={{ width: pageWidth * displayedPages }}
@@ -469,6 +484,11 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
                       }}
                       src={pageUrl(leftPage)}
                       onLoad={($event) => didLoadImage($event)}
+                      onClick={() => {
+                        console.log("left");
+                        flipStart("left", false);
+                        setAction(true);
+                      }}
                     />
                   )}
                   {displayedPages === 2 && pageUrl(rightPage) && (
@@ -482,6 +502,11 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
                       }}
                       src={pageUrl(rightPage)}
                       onLoad={($event) => didLoadImage($event)}
+                      onClick={() => {
+                        console.log("right");
+                        flipStart("right", false);
+                        setAction(true);
+                      }}
                     />
                   )}
                   {polygonArray.map((item, index) => {
@@ -509,7 +534,6 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
                     );
                   })}
                 </div>
-                <div className="guard" />
               </div>
             </div>
           </div>
