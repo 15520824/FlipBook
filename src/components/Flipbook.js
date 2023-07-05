@@ -24,7 +24,7 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
   const { pageWidth, pageHeight, pages, leftPage, rightPage } =
     FlipBookContainer.state;
 
-  const [nPages, setNPages] = useState(pages.length);
+  const [nPages, setNPages] = useState(pages.length + 1);
   const [displayedPages, setDisplayedPages] = useState(1);
   const [nImageLoad, setNImageLoad] = useState(0);
   const [nImageLoadTrigger, setNImageLoadTrigger] = useState(0);
@@ -112,7 +112,6 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
 
   const pageUrl = (page) => {
     if (!pages[page]) return null;
-    console.log(pages[page].url);
     return pages[page].url || null;
   };
 
@@ -293,6 +292,7 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
             leftPage: currentPage,
             rightPage: currentPage + 1,
           });
+
           if (displayedPages === 1 && flip.direction === "left") {
             setFlip((prev) => {
               return {
@@ -327,8 +327,10 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
   };
 
   const swipeStart = (touch) => {
-    setTouchStartX(touch.pageX);
-    setTouchStartY(touch.pageY);
+    if (touch.pageX) setTouchStartX(touch.pageX);
+    else setTouchStartX(touch.changedTouches[0].pageX);
+    if (touch.pageX) setTouchStartY(touch.pageY);
+    else setTouchStartY(touch.changedTouches[0].pageY);
   };
 
   const swipeMove = (touch) => {
@@ -336,8 +338,11 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
     if (touchStartX == null) {
       return;
     }
-    x = touch.pageX - touchStartX;
-    y = touch.pageY - touchStartY;
+    if (touch.pageX) x = touch.pageX - touchStartX;
+    else x = touch.changedTouches[0].pageX - touchStartX;
+    if (touch.pageY) y = touch.pageY - touchStartY;
+    else y = touch.changedTouches[0].pageY - touchStartY;
+
     if (Math.abs(y) > Math.abs(x)) {
       return;
     }
@@ -475,7 +480,11 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
           flipBookContainer.state;
         return (
           <>
-            <div style={{ height: "55px" }}></div>
+            <div style={{ height: "55px", display: "flex" }}>
+              <div style={{ flexShrink: 0 }}></div>
+              <div style={{ flexGrow: 1 }}></div>
+              <div style={{ flexShrink: 0 }}></div>
+            </div>
             <div style={{ backgroundColor: "#E0F3FC", color: "#74A2C3" }}>
               <div
                 style={{
@@ -529,16 +538,16 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
                   <path
                     d="M7.29417 12.9577L10.5048 16.1681L17.6729 9"
                     stroke="#74A2C3"
-                    stroke-width="2.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
                   <circle
                     cx="12"
                     cy="12"
                     r="10"
                     stroke="#74A2C3"
-                    stroke-width="2"
+                    strokeWidth="2"
                   />
                 </svg>
                 <span style={{ marginLeft: "6px", marginRight: "6px" }}>-</span>
@@ -546,6 +555,9 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
                 <span>{Math.floor((currentPage / pages.length) * 100)} % </span>
               </div>
               <div
+                onTouchStart={(ev) => onMouseDown(ev)}
+                onTouchMove={(ev) => onMouseMove(ev)}
+                onTouchEnd={(ev) => onMouseUp(ev)}
                 onMouseDown={(ev) => onMouseDown(ev)}
                 onMouseMove={(ev) => onMouseMove(ev)}
                 onMouseUp={(ev) => onMouseUp(ev)}
@@ -562,7 +574,9 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
                   <div className="container" style={{ width: "100%" }}>
                     <div
                       className="centering-box"
-                      style={{ width: pageWidth * displayedPages }}
+                      style={{
+                        width: pageWidth * displayedPages,
+                      }}
                     >
                       {pageUrl(leftPage) && (
                         <img
@@ -578,6 +592,7 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
                           alt={pageUrl(leftPage)}
                         />
                       )}
+
                       {displayedPages === 2 && pageUrl(rightPage) && (
                         <img
                           className="page fixed"
@@ -591,6 +606,20 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
                           onLoad={($event) => didLoadImage($event)}
                           alt={pageUrl(rightPage)}
                         />
+                      )}
+                      {pageUrl(leftPage) && (
+                        <div
+                          className="page fixed"
+                          style={{
+                            width: "4px",
+                            height: pageHeight * 0.9 + "px",
+                            left: pageWidth - 2 + "px",
+                            top: spaceTop + pageHeight * 0.05 + "px",
+                            backgroundColor: "#E8E7E7",
+                            borderRadius: "10px",
+                            zIndex: "10",
+                          }}
+                        ></div>
                       )}
                       {polygonArray.map((item, index) => {
                         return (
