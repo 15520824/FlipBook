@@ -21,10 +21,10 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
     auto: false,
   };
 
-  const { pageWidth, pageHeight, leftPage, rightPage } =
+  const { pageWidth, pageHeight, pages, leftPage, rightPage } =
     FlipBookContainer.state;
 
-  const [nPages, setNPages] = useState(136);
+  const [nPages, setNPages] = useState(pages.length);
   const [displayedPages, setDisplayedPages] = useState(1);
   const [nImageLoad, setNImageLoad] = useState(0);
   const [nImageLoadTrigger, setNImageLoadTrigger] = useState(0);
@@ -41,7 +41,13 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
   const [action, setAction] = useState(false);
   const [prevDirection, setPrevDirection] = useState("right");
   // computed
-  const canFlipLeft = _canFlipLeft(flip, currentPage, displayedPages, leftPage);
+  const canFlipLeft = _canFlipLeft(
+    flip,
+    currentPage,
+    displayedPages,
+    leftPage,
+    pages
+  );
   const canFlipRight = _canFlipRight(flip, currentPage, nPages, displayedPages);
   const polygonArray = _polygonArray(
     flip,
@@ -73,7 +79,7 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
   }, [currentPage]);
   // method
   const onResize = () => {
-    setDisplayedPages(pageWidth * 2 > pageHeight ? 2 : 1);
+    setDisplayedPages(pageWidth * 2 <= window.innerWidth ? 2 : 1);
   };
 
   const logEvery = () => {
@@ -105,12 +111,9 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
   };
 
   const pageUrl = (page) => {
-    if (page === 0) return null;
-    return (
-      "images/OnePiece/Sách vui dao-hai-tac-phan-1-" +
-      ("000" + page).substr(-3) +
-      ".png"
-    );
+    if (!pages[page]) return null;
+    console.log(pages[page].url);
+    return pages[page].url || null;
   };
 
   const flipStart = async (direction, auto) => {
@@ -444,6 +447,21 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
     };
   });
 
+  const handleClickPage = (ev) => {
+    const center = window.innerWidth / 2;
+    if (ev.pageX < center) {
+      if (canFlipLeft) {
+        flipStart("left", false);
+        setAction(true);
+      }
+    } else {
+      if (canFlipRight) {
+        flipStart("right", false);
+        setAction(true);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!action) return;
     flipAuto(false);
@@ -456,87 +474,156 @@ const Flipbook = ({ flipDuration = 1000, spaceTop = 0 }) => {
         const { pageWidth, pageHeight, leftPage, rightPage } =
           flipBookContainer.state;
         return (
-          <div
-            onMouseDown={(ev) => onMouseDown(ev)}
-            onMouseMove={(ev) => onMouseMove(ev)}
-            onMouseUp={(ev) => onMouseUp(ev)}
-            style={{
-              width: pageWidth * displayedPages + "px",
-              height: pageHeight + "px",
-              margin: "auto",
-            }}
-          >
-            <div className="viewport">
-              <div className="container" style={{ width: "100%" }}>
-                <div className="guard" />
-                <div
-                  className="centering-box"
-                  style={{ width: pageWidth * displayedPages }}
+          <>
+            <div style={{ height: "55px" }}></div>
+            <div style={{ backgroundColor: "#E0F3FC", color: "#74A2C3" }}>
+              <div
+                style={{
+                  height: "55px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <svg
+                  fill="#74A2C3"
+                  width="16px"
+                  height="16px"
+                  viewBox="0 0 32 32"
+                  version="1.1"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  {pageUrl(leftPage) && (
-                    <img
-                      className="page fixed"
-                      style={{
-                        width: pageWidth + "px",
-                        height: pageHeight + "px",
-                        left: xMargin + "px",
-                        top: spaceTop + "px",
-                      }}
-                      src={pageUrl(leftPage)}
-                      onLoad={($event) => didLoadImage($event)}
-                      onClick={() => {
-                        console.log("left");
-                        flipStart("left", false);
-                        setAction(true);
-                      }}
-                    />
-                  )}
-                  {displayedPages === 2 && pageUrl(rightPage) && (
-                    <img
-                      className="page fixed"
-                      style={{
-                        width: pageWidth + "px",
-                        height: pageHeight + "px",
-                        left: pageWidth + "px",
-                        top: spaceTop + "px",
-                      }}
-                      src={pageUrl(rightPage)}
-                      onLoad={($event) => didLoadImage($event)}
-                      onClick={() => {
-                        console.log("right");
-                        flipStart("right", false);
-                        setAction(true);
-                      }}
-                    />
-                  )}
-                  {polygonArray.map((item, index) => {
-                    return (
-                      <div
-                        key={index}
-                        className={item[1] ? "polygon blank" : "polygon"}
-                        style={{
-                          backgroundImage: item[1],
-                          backgroundSize: polygonBgSize,
-                          backgroundPosition: item[3],
-                          width: polygonWidth,
-                          height: polygonHeight,
-                          transform: item[4],
-                          zIndex: item[5],
-                        }}
-                      >
-                        {item[2].length && (
+                  <title>clock</title>
+                  <path d="M0 7.008q0 1.856 0.992 3.52 1.184-3.328 3.712-5.824t5.824-3.712q-1.696-0.992-3.52-0.992-2.912 0-4.96 2.080t-2.048 4.928zM2.016 16q0 2.784 1.056 5.312t2.944 4.48v4.224q0 0.832 0.576 1.408t1.408 0.576 1.408-0.576 0.608-1.408v-1.408q2.912 1.408 5.984 1.408t6.016-1.408v1.408q0 0.832 0.576 1.408t1.408 0.576 1.408-0.576 0.608-1.408v-4.224q1.888-1.952 2.944-4.448t1.056-5.344-1.12-5.44-2.976-4.48-4.48-2.976-5.44-1.12-5.44 1.12-4.48 2.976-2.976 4.48-1.088 5.44zM6.016 16q0-2.048 0.768-3.872t2.144-3.2 3.2-2.144 3.872-0.8q2.72 0 5.024 1.344t3.648 3.648 1.344 5.024q0 2.016-0.8 3.872t-2.144 3.2-3.2 2.144-3.872 0.768q-2.72 0-5.024-1.312t-3.616-3.648-1.344-5.024zM14.016 16q0 0.832 0.576 1.408t1.408 0.576h4q0.832 0 1.408-0.576t0.608-1.408-0.608-1.408-1.408-0.608h-1.984v-1.984q0-0.832-0.608-1.408t-1.408-0.608-1.408 0.608-0.576 1.408v4zM21.472 0.992q3.328 1.216 5.824 3.712t3.712 5.824q0.992-1.664 0.992-3.52 0-2.88-2.048-4.928t-4.96-2.080q-1.824 0-3.52 0.992z"></path>
+                </svg>
+                <span style={{ marginLeft: "6px" }}>
+                  Thời gian đọc còn lại:
+                </span>
+                <span style={{ marginLeft: "6px", marginRight: "6px" }}>
+                  {Math.floor((pages.length - currentPage) / 40)} giờ{" "}
+                  {Math.floor(
+                    ((pages.length - currentPage) / 40 -
+                      Math.floor((pages.length - currentPage) / 40)) *
+                      60
+                  ) < 10
+                    ? "0" +
+                      Math.floor(
+                        ((pages.length - currentPage) / 40 -
+                          Math.floor((pages.length - currentPage) / 40)) *
+                          60
+                      ).toString()
+                    : Math.floor(
+                        ((pages.length - currentPage) / 40 -
+                          Math.floor((pages.length - currentPage) / 40)) *
+                          60
+                      ).toString()}{" "}
+                  phút
+                </span>
+                <svg
+                  width="16px"
+                  height="16px"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M7.29417 12.9577L10.5048 16.1681L17.6729 9"
+                    stroke="#74A2C3"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="#74A2C3"
+                    stroke-width="2"
+                  />
+                </svg>
+                <span style={{ marginLeft: "6px", marginRight: "6px" }}>-</span>
+                <span style={{ marginRight: "6px" }}>Đã đọc:</span>
+                <span>{Math.floor((currentPage / pages.length) * 100)} % </span>
+              </div>
+              <div
+                onMouseDown={(ev) => onMouseDown(ev)}
+                onMouseMove={(ev) => onMouseMove(ev)}
+                onMouseUp={(ev) => onMouseUp(ev)}
+                onClick={(ev) => handleClickPage(ev)}
+                style={{
+                  width: pageWidth * displayedPages + "px",
+                  height: pageHeight + "px",
+                  margin: "auto",
+                  padding: "20px 40px",
+                  background: "linear-gradient(#3472A2, #DEF2FB)",
+                }}
+              >
+                <div className="viewport">
+                  <div className="container" style={{ width: "100%" }}>
+                    <div
+                      className="centering-box"
+                      style={{ width: pageWidth * displayedPages }}
+                    >
+                      {pageUrl(leftPage) && (
+                        <img
+                          className="page fixed"
+                          style={{
+                            width: pageWidth + "px",
+                            height: pageHeight + "px",
+                            left: xMargin + "px",
+                            top: spaceTop + "px",
+                          }}
+                          src={pageUrl(leftPage)}
+                          onLoad={($event) => didLoadImage($event)}
+                          alt={pageUrl(leftPage)}
+                        />
+                      )}
+                      {displayedPages === 2 && pageUrl(rightPage) && (
+                        <img
+                          className="page fixed"
+                          style={{
+                            width: pageWidth + "px",
+                            height: pageHeight + "px",
+                            left: pageWidth + "px",
+                            top: spaceTop + "px",
+                          }}
+                          src={pageUrl(rightPage)}
+                          onLoad={($event) => didLoadImage($event)}
+                          alt={pageUrl(rightPage)}
+                        />
+                      )}
+                      {polygonArray.map((item, index) => {
+                        return (
                           <div
-                            className="lighting"
-                            style={{ backgroundImage: item[2] }}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
+                            key={index}
+                            className={item[1] ? "polygon blank" : "polygon"}
+                            style={{
+                              backgroundImage: item[1],
+                              backgroundSize: polygonBgSize,
+                              backgroundPosition: item[3],
+                              width: polygonWidth,
+                              height: polygonHeight,
+                              transform: item[4],
+                              zIndex: item[5],
+                            }}
+                          >
+                            {item[2].length && (
+                              <div
+                                className="lighting"
+                                style={{ backgroundImage: item[2] }}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="guard" />
+                  </div>
                 </div>
               </div>
+              <div style={{ height: "55px" }}></div>
             </div>
-          </div>
+          </>
         );
       }}
     </Subscribe>
